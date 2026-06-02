@@ -62,7 +62,10 @@ export function LoginPage() {
           <form onSubmit={onSubmit} className="space-y-4" noValidate>
             {/* Root error */}
             {errors.root && (
-              <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              <div
+                role="alert"
+                className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+              >
                 {errors.root.message}
               </div>
             )}
@@ -76,10 +79,11 @@ export function LoginPage() {
                 placeholder="you@example.com"
                 autoComplete="email"
                 aria-invalid={!!errors.email}
+                aria-describedby={errors.email ? "email-error" : undefined}
                 {...register("email")}
               />
               {errors.email && (
-                <p className="text-xs text-destructive">
+                <p id="email-error" role="alert" className="text-xs text-destructive">
                   {errors.email.message}
                 </p>
               )}
@@ -93,10 +97,11 @@ export function LoginPage() {
                 type="password"
                 autoComplete="current-password"
                 aria-invalid={!!errors.password}
+                aria-describedby={errors.password ? "password-error" : undefined}
                 {...register("password")}
               />
               {errors.password && (
-                <p className="text-xs text-destructive">
+                <p id="password-error" role="alert" className="text-xs text-destructive">
                   {errors.password.message}
                 </p>
               )}

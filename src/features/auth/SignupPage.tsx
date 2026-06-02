@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useNavigate, Link } from "react-router-dom";
@@ -26,6 +27,11 @@ export function SignupPage() {
   const navigate = useNavigate();
   const setAuth = useAuthStore((state) => state.setAuth);
 
+  // When register succeeds but the follow-up login fails, the account already
+  // exists — retrying register would 409. Surface a recovery path to /login
+  // instead of a generic root error.
+  const [accountCreated, setAccountCreated] = useState(false);
+
   const {
     register,
     handleSubmit,
@@ -36,11 +42,42 @@ export function SignupPage() {
     defaultValues: { name: "", email: "", password: "" },
   });
 
+  // Decision: `accountCreated` pins the form to "login-only" so retries don't
+  // re-run register against an account that already exists. That's only correct
+  // for the SAME email — if the user edits the email to register a DIFFERENT
+  // account, reset back to register mode (see the email field's onChange below)
+  // so they aren't stuck signing in.
+  const emailField = register("email");
+
   const onSubmit = handleSubmit(async (values) => {
+    // ─── Phase 1: register ────────────────────────────────────────────────
+    // Register only creates the user — it returns no token. Skip it on a
+    // post-register retry (`accountCreated`); the account already exists, so
+    // re-running register would 409. Go straight to login instead.
+    if (!accountCreated) {
+      try {
+        await authApi.register(values.name, values.email, values.password);
+      } catch (err) {
+        const message = getApiErrorMessage(err, "Could not create your account");
+
+        // 409 Conflict == email already registered
+        if (isAxiosError(err) && err.response?.status === 409) {
+          setError("email", { message });
+        } else {
+          setError("root", { message });
+        }
+
+        toast.error(message);
+        return;
+      }
+    }
+
+    // ─── Phase 2: login ───────────────────────────────────────────────────
+    // The account now exists; sign in to establish a session. If this fails,
+    // do NOT re-run register on retry — keep the user here and point them at
+    // the login page. The inline recovery block (role="alert") is the durable
+    // surface here, so we deliberately skip the toast to avoid duplicating it.
     try {
-      // Register only creates the user — it returns no token, so we sign the
-      // user in with the same credentials to establish a session.
-      await authApi.register(values.name, values.email, values.password);
       const { user, accessToken } = await authApi.login(
         values.email,
         values.password,
@@ -48,17 +85,8 @@ export function SignupPage() {
       setAuth(user, accessToken);
       toast.success("Account created successfully");
       navigate("/dashboard");
-    } catch (err) {
-      const message = getApiErrorMessage(err, "Could not create your account");
-
-      // 409 Conflict == email already registered
-      if (isAxiosError(err) && err.response?.status === 409) {
-        setError("email", { message });
-      } else {
-        setError("root", { message });
-      }
-
-      toast.error(message);
+    } catch {
+      setAccountCreated(true);
     }
   });
 
@@ -72,9 +100,30 @@ export function SignupPage() {
 
         <CardContent>
           <form onSubmit={onSubmit} className="space-y-4" noValidate>
+            {/* Account-created recovery message (register ok, login failed) */}
+            {accountCreated && (
+              <div
+                role="alert"
+                className="rounded-md bg-muted px-3 py-2 text-sm text-foreground"
+              >
+                Your account was created, but we couldn't sign you in
+                automatically.{" "}
+                <Link
+                  to="/login"
+                  className="font-medium text-primary underline-offset-4 hover:underline"
+                >
+                  Sign in
+                </Link>{" "}
+                to continue.
+              </div>
+            )}
+
             {/* Root error */}
             {errors.root && (
-              <div className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive">
+              <div
+                role="alert"
+                className="rounded-md bg-destructive/10 px-3 py-2 text-sm text-destructive"
+              >
                 {errors.root.message}
               </div>
             )}
@@ -88,10 +137,11 @@ export function SignupPage() {
                 placeholder="John Doe"
                 autoComplete="name"
                 aria-invalid={!!errors.name}
+                aria-describedby={errors.name ? "name-error" : undefined}
                 {...register("name")}
               />
               {errors.name && (
-                <p className="text-xs text-destructive">
+                <p id="name-error" role="alert" className="text-xs text-destructive">
                   {errors.name.message}
                 </p>
               )}
@@ -106,10 +156,16 @@ export function SignupPage() {
                 placeholder="you@example.com"
                 autoComplete="email"
                 aria-invalid={!!errors.email}
-                {...register("email")}
+                aria-describedby={errors.email ? "email-error" : undefined}
+                {...emailField}
+                onChange={(e) => {
+                  // New email == a different account; allow register again.
+                  setAccountCreated(false);
+                  return emailField.onChange(e);
+                }}
               />
               {errors.email && (
-                <p className="text-xs text-destructive">
+                <p id="email-error" role="alert" className="text-xs text-destructive">
                   {errors.email.message}
                 </p>
               )}
@@ -123,17 +179,18 @@ export function SignupPage() {
                 type="password"
                 autoComplete="new-password"
                 aria-invalid={!!errors.password}
+                aria-describedby={errors.password ? "password-error" : undefined}
                 {...register("password")}
               />
               {errors.password && (
-                <p className="text-xs text-destructive">
+                <p id="password-error" role="alert" className="text-xs text-destructive">
                   {errors.password.message}
                 </p>
               )}
             </div>
 
             <SubmitButton className="w-full" isLoading={isSubmitting}>
-              Create account
+              {accountCreated ? "Sign in" : "Create account"}
             </SubmitButton>
           </form>
 
