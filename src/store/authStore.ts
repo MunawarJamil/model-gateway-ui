@@ -14,25 +14,41 @@ export const useAuthStore = create<AuthStore>()(
       (set) => ({
         ...initialState,
 
-        setAuth: (user, token) =>
+        setAuth: (user, token) => {
+          // Never enter an authenticated-but-tokenless state: a bad login that
+          // yields no token must not mark the user as authenticated, or every
+          // subsequent request would 401 and bounce them to /login.
+          if (!token) {
+            set({ ...initialState }, false, "auth/setAuth:invalid");
+            return;
+          }
           set(
-            { user, accessToken: token, isAuthenticated: true },
+            { user, accessToken: token, isAuthenticated: !!user && !!token },
             false,
             "auth/setAuth",
-          ),
+          );
+        },
 
         setToken: (token) =>
-          set({ accessToken: token }, false, "auth/setToken"),
+          set(
+            (state) => ({
+              accessToken: token,
+              isAuthenticated: !!token && !!state.user,
+            }),
+            false,
+            "auth/setToken",
+          ),
 
         logout: () => set({ ...initialState }, false, "auth/logout"),
       }),
       {
         name: "auth-storage",
-        // Sirf ye teen fields persist karo — actions nahi
+        // Persist ONLY the token. `user` and `isAuthenticated` are derived: on
+        // reload we re-fetch the user via me() and recompute the flag. Persisting
+        // `isAuthenticated` would let route guards trust a stale value before
+        // bootstrap resolves, causing a flash / redirect race.
         partialize: (state) => ({
-          user: state.user,
           accessToken: state.accessToken,
-          isAuthenticated: state.isAuthenticated,
         }),
       },
     ),

@@ -10,6 +10,6 @@ export function ProtectedRoute() {
     return <Navigate to="/login" state={{ from: location }} replace />
   }
 
-  // Outlet — nested protected routes yahan render honge
+  // Outlet — nested protected routes render here.
   return <Outlet />
 }

@@ -16,7 +16,8 @@ interface AuthResult {
 }
 
 export const authApi = {
-  // Backend: { token, user } → normalise `token` to `accessToken`.
+  // Backend (after envelope unwrap): { token, user } → normalise `token` to
+  // `accessToken`.
   login: async (email: string, password: string): Promise<AuthResult> => {
     const { data } = await api.post<LoginApiResponse>("/v1/auth/login", {
       email,

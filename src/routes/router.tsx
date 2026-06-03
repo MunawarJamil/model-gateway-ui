@@ -2,10 +2,11 @@ import { createBrowserRouter } from 'react-router-dom'
 import { lazy, Suspense } from 'react'
 import { PageLoader } from '@/components/PageLoader'
 import { ProtectedRoute } from './ProtectedRoute'
+import { RouterNavigationBinder } from './RouterNavigationBinder'
 import { AppLayout } from '@/components'
 
 // ─── Lazy loaded pages ────────────────────────────────────────────────────────
-// Code splitting — har page sirf tab load hoga jab user navigate kare
+// Code splitting — each page is only loaded when the user navigates to it.
 const LoginPage = lazy(() =>
   import('@/features/auth/LoginPage').then((m) => ({ default: m.LoginPage }))
 )
@@ -38,60 +39,66 @@ const WebhooksPage = lazy(() =>
 
 // ─── Router ───────────────────────────────────────────────────────────────────
 export const router = createBrowserRouter([
-  // ─── Public routes ──────────────────────────────────────────────────
+  // ─── Root — binds the router's navigate fn for use outside React ────
   {
-    path: '/login',
-    element: (
-      <Suspense fallback={<PageLoader />}>
-        <LoginPage />
-      </Suspense>
-    ),
-  },
-  {
-    path: '/signup',
-    element: (
-      <Suspense fallback={<PageLoader />}>
-        <SignupPage />
-      </Suspense>
-    ),
-  },
-
-  // ─── Protected routes ───────────────────────────────────────────────
- {
-    element: <ProtectedRoute />,
+    element: <RouterNavigationBinder />,
     children: [
-      // ─── AppLayout wraps all protected pages — sidebar lives here ──
+      // ─── Public routes ──────────────────────────────────────────────────
       {
-        element: <AppLayout />,
+        path: '/login',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <LoginPage />
+          </Suspense>
+        ),
+      },
+      {
+        path: '/signup',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <SignupPage />
+          </Suspense>
+        ),
+      },
+
+      // ─── Protected routes ───────────────────────────────────────────────
+      {
+        element: <ProtectedRoute />,
         children: [
+          // ─── AppLayout wraps all protected pages — sidebar lives here ──
           {
-            path: '/dashboard',
-            element: <Suspense fallback={<PageLoader />}><DashboardPage /></Suspense>,
-          },
-          {
-            path: '/api-keys',
-            element: <Suspense fallback={<PageLoader />}><ApiKeysPage /></Suspense>,
-          },
-          {
-            path: '/jobs',
-            element: <Suspense fallback={<PageLoader />}><JobsPage /></Suspense>,
-          },
-          {
-            path: '/webhooks',
-            element: <Suspense fallback={<PageLoader />}><WebhooksPage /></Suspense>,
+            element: <AppLayout />,
+            children: [
+              {
+                path: '/dashboard',
+                element: <Suspense fallback={<PageLoader />}><DashboardPage /></Suspense>,
+              },
+              {
+                path: '/api-keys',
+                element: <Suspense fallback={<PageLoader />}><ApiKeysPage /></Suspense>,
+              },
+              {
+                path: '/jobs',
+                element: <Suspense fallback={<PageLoader />}><JobsPage /></Suspense>,
+              },
+              {
+                path: '/webhooks',
+                element: <Suspense fallback={<PageLoader />}><WebhooksPage /></Suspense>,
+              },
+            ],
           },
         ],
       },
-    ],
-  },
 
-  // ─── Fallback ────────────────────────────────────────────────────────
-  {
-    path: '*',
-    element: (
-      <div className="flex min-h-screen items-center justify-center">
-        <p className="text-muted-foreground">404 — Page not found</p>
-      </div>
-    ),
+      // ─── Fallback ────────────────────────────────────────────────────────
+      {
+        path: '*',
+        element: (
+          <div className="flex min-h-screen items-center justify-center">
+            <p className="text-muted-foreground">404 — Page not found</p>
+          </div>
+        ),
+      },
+    ],
   },
 ])
