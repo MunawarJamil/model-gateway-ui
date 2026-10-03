@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import {
   LayoutDashboard,
   Key,
+  Sparkles,
   BriefcaseBusiness,
   Webhook,
   LogOut,
@@ -15,6 +16,7 @@ import {
 // ─── Nav items ────────────────────────────────────────────────────────────────
 const navItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { to: "/playground", label: "Playground", icon: Sparkles },
   { to: "/api-keys", label: "API Keys", icon: Key },
   { to: "/jobs", label: "Jobs", icon: BriefcaseBusiness },
   { to: "/webhooks", label: "Webhooks", icon: Webhook },

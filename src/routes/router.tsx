@@ -27,6 +27,11 @@ const ApiKeysPage = lazy(() =>
     default: m.ApiKeysPage,
   }))
 )
+const PlaygroundPage = lazy(() =>
+  import('@/features/playground/PlaygroundPage').then((m) => ({
+    default: m.PlaygroundPage,
+  }))
+)
 
 const JobsPage = lazy(() =>
   import('@/features/jobs/JobsPage').then((m) => ({ default: m.JobsPage }))
@@ -73,6 +78,10 @@ export const router = createBrowserRouter([
               {
                 path: '/dashboard',
                 element: <Suspense fallback={<PageLoader />}><DashboardPage /></Suspense>,
+              },
+              {
+                path: '/playground',
+                element: <Suspense fallback={<PageLoader />}><PlaygroundPage /></Suspense>,
               },
               {
                 path: '/api-keys',
