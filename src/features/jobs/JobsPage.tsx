@@ -28,6 +28,7 @@ export function JobsPage() {
     trackedJobs,
     clearHistory,
     isLoading,
+    error,
     enqueueJob,
     isEnqueuing,
     refetchJob,
@@ -117,6 +118,7 @@ export function JobsPage() {
               jobStatus={jobStatus}
               jobId={activeJobId}
               isLoading={isLoading}
+              error={error}
               onRefresh={refetchJob}
             />
           </div>

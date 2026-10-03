@@ -60,9 +60,25 @@ api.interceptors.response.use(
       // expected 401 there should just resolve to a logged-out state, not bounce
       // the user mid-load and risk a redirect loop.
       const isAuthBootstrap = error.config?.url?.includes('/v1/auth/me')
-      const { logout } = useAuthStore.getState()
-      logout()
-      if (!isAuthBootstrap && !isRedirecting) {
+
+      // Do NOT logout if this 401 was triggered by a gateway API key failure
+      // (e.g. invalid x-api-key header on /v1/jobs, /v1/webhooks, /v1/complete, etc.)
+      const hasApiKeyHeader = Boolean(
+        error.config?.headers &&
+          ('x-api-key' in error.config.headers ||
+            (typeof error.config.headers.get === 'function' &&
+              Boolean(error.config.headers.get('x-api-key'))))
+      )
+
+      const responseData = error.response?.data as { message?: string } | undefined
+      const isApiKeyError =
+        hasApiKeyHeader ||
+        responseData?.message === 'Invalid or inactive API key' ||
+        responseData?.message === 'API key missing'
+
+      if (!isAuthBootstrap && !isApiKeyError && !isRedirecting) {
+        const { logout } = useAuthStore.getState()
+        logout()
         isRedirecting = true
         // Router-based navigation — avoids a full-page reload (and the loss of
         // SPA state / re-download of the bundle) on session expiry.

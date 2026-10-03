@@ -22,12 +22,14 @@ import {
   Zap,
 } from "lucide-react";
 import { toast } from "sonner";
+import { getApiErrorMessage } from "@/lib";
 import type { JobStatus } from "./types";
 
 interface JobStatusCardProps {
   jobStatus?: JobStatus;
   jobId: string | null;
   isLoading: boolean;
+  error?: unknown;
   onRefresh: () => void;
 }
 
@@ -35,6 +37,7 @@ export function JobStatusCard({
   jobStatus,
   jobId,
   isLoading,
+  error,
   onRefresh,
 }: JobStatusCardProps) {
   const [copied, setCopied] = useState(false);
@@ -71,6 +74,34 @@ export function JobStatusCard({
         <Skeleton className="h-6 w-48" />
         <Skeleton className="h-4 w-72" />
         <Skeleton className="h-28 w-full" />
+      </Card>
+    );
+  }
+
+  if (error && !jobStatus) {
+    return (
+      <Card className="p-6">
+        <div className="flex flex-col items-center justify-center p-8 text-center">
+          <div className="rounded-full bg-destructive/10 p-3 text-destructive mb-3">
+            <XCircle className="h-6 w-6" />
+          </div>
+          <h3 className="text-sm font-semibold">Unable to Load Job #{jobId}</h3>
+          <p className="text-muted-foreground text-xs mt-1 max-w-sm">
+            {getApiErrorMessage(
+              error,
+              "The job could not be retrieved. Ensure your API key is valid and active."
+            )}
+          </p>
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={onRefresh}
+            className="mt-4 gap-1.5 text-xs"
+          >
+            <RotateCw className="h-3.5 w-3.5" />
+            Retry
+          </Button>
+        </div>
       </Card>
     );
   }

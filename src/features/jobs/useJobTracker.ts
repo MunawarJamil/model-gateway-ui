@@ -36,6 +36,7 @@ export function useJobTracker(apiKey: string) {
     data: jobStatus,
     isLoading: isJobLoading,
     isError: isJobError,
+    error: jobError,
     refetch: refetchJob,
   } = useQuery({
     queryKey: ["job-status", apiKey, activeJobId],
@@ -44,7 +45,9 @@ export function useJobTracker(apiKey: string) {
       return jobsApi.getStatus(apiKey, activeJobId);
     },
     enabled: Boolean(apiKey && activeJobId),
+    retry: false,
     refetchInterval: (query) => {
+      if (query.state.error) return false;
       const state = query.state.data?.state;
       // Stop polling once job is finished
       if (state === "completed" || state === "failed") {
@@ -90,6 +93,7 @@ export function useJobTracker(apiKey: string) {
     clearHistory,
     isLoading: isJobLoading,
     isError: isJobError,
+    error: jobError,
     enqueueJob: enqueueMutation.mutateAsync,
     isEnqueuing: enqueueMutation.isPending,
     refetchJob,
