@@ -17,7 +17,18 @@ const MAX_HISTORY_ITEMS = 30;
 
 export function usePlayground(apiKey: string) {
   // Input configuration state
-  const [prompt, setPrompt] = useState<string>("");
+  const [prompt, setPrompt] = useState<string>(() => {
+    try {
+      const initial = sessionStorage.getItem("mg_playground_initial_prompt");
+      if (initial) {
+        sessionStorage.removeItem("mg_playground_initial_prompt");
+        return initial;
+      }
+    } catch {
+      // ignore
+    }
+    return "";
+  });
   const [provider, setProvider] = useState<ProviderOption>("auto");
   const [model, setModel] = useState<string>("");
   const [mode, setMode] = useState<CompletionMode>("stream");

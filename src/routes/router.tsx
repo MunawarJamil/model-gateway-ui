@@ -32,6 +32,11 @@ const ApiKeysPage = lazy(() =>
     default: m.PlaygroundPage,
   }))
 )
+const TemplatesPage = lazy(() =>
+  import('@/features/templates/TemplatesPage').then((m) => ({
+    default: m.TemplatesPage,
+  }))
+)
 
 const JobsPage = lazy(() =>
   import('@/features/jobs/JobsPage').then((m) => ({ default: m.JobsPage }))
@@ -82,6 +87,10 @@ export const router = createBrowserRouter([
               {
                 path: '/playground',
                 element: <Suspense fallback={<PageLoader />}><PlaygroundPage /></Suspense>,
+              },
+              {
+                path: '/templates',
+                element: <Suspense fallback={<PageLoader />}><TemplatesPage /></Suspense>,
               },
               {
                 path: '/api-keys',

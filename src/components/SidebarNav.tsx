@@ -7,6 +7,7 @@ import {
   LayoutDashboard,
   Key,
   Sparkles,
+  FileText,
   BriefcaseBusiness,
   Webhook,
   LogOut,
@@ -17,6 +18,7 @@ import {
 const navItems = [
   { to: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { to: "/playground", label: "Playground", icon: Sparkles },
+  { to: "/templates", label: "Templates", icon: FileText },
   { to: "/api-keys", label: "API Keys", icon: Key },
   { to: "/jobs", label: "Jobs", icon: BriefcaseBusiness },
   { to: "/webhooks", label: "Webhooks", icon: Webhook },
