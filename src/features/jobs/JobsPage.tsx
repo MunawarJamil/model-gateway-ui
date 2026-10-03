@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,18 +8,18 @@ import { RecentJobsList } from "./RecentJobsList";
 import { useJobTracker } from "./useJobTracker";
 import { Key, ArrowRight, ShieldCheck } from "lucide-react";
 
+import { useAuthStore } from "@/store";
+import { userStorage } from "@/lib/userStorage";
+
 export function JobsPage() {
-  // Session-persisted API key for gateway completions
+  const user = useAuthStore((s) => s.user);
+  const userId = user?.id;
+
+  // Session-persisted API key strictly scoped to current user
   const [apiKey, setApiKey] = useState<string>(() => {
-    return sessionStorage.getItem("mg_webhooks_key") ?? "";
+    return userStorage.getGatewayKey(userId);
   });
   const [inputKey, setInputKey] = useState<string>(apiKey);
-
-  useEffect(() => {
-    if (apiKey) {
-      sessionStorage.setItem("mg_webhooks_key", apiKey);
-    }
-  }, [apiKey]);
 
   const {
     jobStatus,
@@ -36,7 +36,11 @@ export function JobsPage() {
 
   const handleApplyKey = (e: React.FormEvent) => {
     e.preventDefault();
-    setApiKey(inputKey.trim());
+    const trimmed = inputKey.trim();
+    setApiKey(trimmed);
+    if (userId) {
+      userStorage.setGatewayKey(userId, trimmed);
+    }
   };
 
   return (

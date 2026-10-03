@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState} from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,47 +8,43 @@ import { TemplatesTable } from "./TemplatesTable";
 import { TemplateTesterCard } from "./TemplateTesterCard";
 import { CreateTemplateModal } from "./CreateTemplateModal";
 
+import { useAuthStore } from "@/store";
+import { userStorage } from "@/lib/userStorage";
+
 export function TemplatesPage() {
-  // Session-persisted API key for gateway operations
+  const user = useAuthStore((s) => s.user);
+  const userId = user?.id;
+
+  // Session-persisted API key strictly scoped to current user
   const [apiKey, setApiKey] = useState<string>(() => {
-    return (
-      sessionStorage.getItem("mg_gateway_key") ??
-      sessionStorage.getItem("mg_webhooks_key") ??
-      ""
-    );
+    return userStorage.getGatewayKey(userId);
   });
   const [inputKey, setInputKey] = useState<string>(apiKey);
   const [createModalOpen, setCreateModalOpen] = useState(false);
-
-  useEffect(() => {
-    if (apiKey) {
-      sessionStorage.setItem("mg_gateway_key", apiKey);
-      sessionStorage.setItem("mg_webhooks_key", apiKey);
-    }
-  }, [apiKey]);
 
   const {
     templates,
     selectedTemplateId,
     setSelectedTemplateId,
-    selectedTemplate,
+    selectedTemplate: storeSelectedTemplate,
     createTemplate,
     isCreating,
   } = useTemplates(apiKey);
 
-  // If no template is explicitly selected, select the first one by default when loaded
-  useEffect(() => {
-    if (!selectedTemplateId && templates.length > 0) {
-      const first = templates[0];
-      if (first) {
-        setSelectedTemplateId(first.id);
-      }
-    }
-  }, [selectedTemplateId, templates, setSelectedTemplateId]);
+  // Derived active template ID: pure render calculation, no cascading render effect
+  const activeTemplateId = selectedTemplateId ?? templates[0]?.id ?? null;
+  const selectedTemplate =
+    storeSelectedTemplate ??
+    templates.find((t) => t.id === activeTemplateId) ??
+    null;
 
   const handleApplyKey = (e: React.FormEvent) => {
     e.preventDefault();
-    setApiKey(inputKey.trim());
+    const trimmed = inputKey.trim();
+    setApiKey(trimmed);
+    if (userId) {
+      userStorage.setGatewayKey(userId, trimmed);
+    }
   };
 
   return (
@@ -137,7 +133,7 @@ export function TemplatesPage() {
           <div className="lg:col-span-7">
             <TemplatesTable
               templates={templates}
-              selectedId={selectedTemplateId}
+              selectedId={activeTemplateId}
               onSelect={(id) => setSelectedTemplateId(id)}
               onCreateOpen={() => setCreateModalOpen(true)}
             />

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,23 +8,18 @@ import { PlaygroundConfigCard } from "./PlaygroundConfigCard";
 import { PlaygroundOutputCard } from "./PlaygroundOutputCard";
 import { PlaygroundHistoryList } from "./PlaygroundHistoryList";
 
+import { useAuthStore } from "@/store";
+import { userStorage } from "@/lib/userStorage";
+
 export function PlaygroundPage() {
-  // Session-persisted API key for gateway completions
+  const user = useAuthStore((s) => s.user);
+  const userId = user?.id;
+
+  // Session-persisted API key strictly scoped to current user
   const [apiKey, setApiKey] = useState<string>(() => {
-    return (
-      sessionStorage.getItem("mg_gateway_key") ??
-      sessionStorage.getItem("mg_webhooks_key") ??
-      ""
-    );
+    return userStorage.getGatewayKey(userId);
   });
   const [inputKey, setInputKey] = useState<string>(apiKey);
-
-  useEffect(() => {
-    if (apiKey) {
-      sessionStorage.setItem("mg_gateway_key", apiKey);
-      sessionStorage.setItem("mg_webhooks_key", apiKey);
-    }
-  }, [apiKey]);
 
   const {
     prompt,
@@ -51,7 +46,11 @@ export function PlaygroundPage() {
 
   const handleApplyKey = (e: React.FormEvent) => {
     e.preventDefault();
-    setApiKey(inputKey.trim());
+    const trimmed = inputKey.trim();
+    setApiKey(trimmed);
+    if (userId) {
+      userStorage.setGatewayKey(userId, trimmed);
+    }
   };
 
   return (

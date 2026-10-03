@@ -2,6 +2,8 @@ import { create } from "zustand";
 import { devtools, persist } from "zustand/middleware";
 import type { AuthState, AuthStore } from "@/types";
 
+import { userStorage } from "@/lib/userStorage";
+
 const initialState: AuthState = {
   user: null,
   accessToken: null,
@@ -11,7 +13,7 @@ const initialState: AuthState = {
 export const useAuthStore = create<AuthStore>()(
   devtools(
     persist(
-      (set) => ({
+      (set, get) => ({
         ...initialState,
 
         setAuth: (user, token) => {
@@ -22,6 +24,13 @@ export const useAuthStore = create<AuthStore>()(
             set({ ...initialState }, false, "auth/setAuth:invalid");
             return;
           }
+
+          const currentUser = get().user;
+          // If switching accounts, purge all leftover session keys and in-memory caches
+          if (currentUser && currentUser.id !== user.id) {
+            userStorage.purgeAllUserData(currentUser.id);
+          }
+
           set(
             { user, accessToken: token, isAuthenticated: !!user && !!token },
             false,
@@ -39,7 +48,11 @@ export const useAuthStore = create<AuthStore>()(
             "auth/setToken",
           ),
 
-        logout: () => set({ ...initialState }, false, "auth/logout"),
+        logout: () => {
+          const currentUser = get().user;
+          userStorage.purgeAllUserData(currentUser?.id);
+          set({ ...initialState }, false, "auth/logout");
+        },
       }),
       {
         name: "auth-storage",

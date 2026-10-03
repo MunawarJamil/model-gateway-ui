@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -18,11 +18,16 @@ import {
 } from "lucide-react";
 import type { RegisteredWebhook } from "./types";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/store";
+import { userStorage } from "@/lib/userStorage";
 
 export function WebhooksPage() {
-  // Session-persisted API key for managing webhooks
+  const user = useAuthStore((s) => s.user);
+  const userId = user?.id;
+
+  // Session-persisted API key strictly scoped to current user
   const [apiKey, setApiKey] = useState<string>(() => {
-    return sessionStorage.getItem("mg_webhooks_key") ?? "";
+    return userStorage.getGatewayKey(userId);
   });
   const [inputKey, setInputKey] = useState<string>(apiKey);
   const [activeTab, setActiveTab] = useState<"endpoints" | "dlq">("endpoints");
@@ -30,14 +35,6 @@ export function WebhooksPage() {
   // Modals state
   const [registerOpen, setRegisterOpen] = useState(false);
   const [revealedWebhook, setRevealedWebhook] = useState<RegisteredWebhook | null>(null);
-
-  // Sync to session storage
-  useEffect(() => {
-    if (apiKey) {
-      sessionStorage.setItem("mg_webhooks_key", apiKey);
-    }
-  }, [apiKey]);
-
   const {
     endpoints,
     failedDeliveries,
@@ -51,7 +48,11 @@ export function WebhooksPage() {
 
   const handleApplyKey = (e: React.FormEvent) => {
     e.preventDefault();
-    setApiKey(inputKey.trim());
+    const trimmed = inputKey.trim();
+    setApiKey(trimmed);
+    if (userId) {
+      userStorage.setGatewayKey(userId, trimmed);
+    }
   };
 
   return (

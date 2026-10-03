@@ -5,31 +5,29 @@ import { jobsApi } from "./api";
 import { getApiErrorMessage } from "@/lib";
 import type { AsyncCompletePayload, TrackedJob } from "./types";
 
-const TRACKED_JOBS_KEY = "mg_tracked_jobs";
+import { useAuthStore } from "@/store";
+import { userStorage } from "@/lib/userStorage";
 
 export function useJobTracker(apiKey: string) {
-  // 1. History of recently submitted jobs
+  const user = useAuthStore((s) => s.user);
+  const userId = user?.id;
+
+  // 1. History of recently submitted jobs strictly scoped to current user
   const [trackedJobs, setTrackedJobs] = useState<TrackedJob[]>(() => {
-    try {
-      const stored = localStorage.getItem(TRACKED_JOBS_KEY);
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
+    return userStorage.getTrackedJobs<TrackedJob>(userId);
   });
 
   const [activeJobId, setActiveJobId] = useState<string | null>(() => {
     return trackedJobs[0]?.jobId ?? null;
   });
 
-  // Save history on change
+
+  // Save history strictly under user ID
   useEffect(() => {
-    try {
-      localStorage.setItem(TRACKED_JOBS_KEY, JSON.stringify(trackedJobs));
-    } catch {
-      // ignore storage quota issues
+    if (userId) {
+      userStorage.setTrackedJobs(userId, trackedJobs);
     }
-  }, [trackedJobs]);
+  }, [trackedJobs, userId]);
 
   // 2. Query with smart adaptive polling
   const {
@@ -81,7 +79,7 @@ export function useJobTracker(apiKey: string) {
   const clearHistory = () => {
     setTrackedJobs([]);
     setActiveJobId(null);
-    localStorage.removeItem(TRACKED_JOBS_KEY);
+    userStorage.clearTrackedJobs(userId);
     toast.info("Job history cleared");
   };
 

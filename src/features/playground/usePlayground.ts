@@ -12,10 +12,15 @@ import {
   type PlaygroundHistoryItem,
 } from "./types";
 
-const HISTORY_STORAGE_KEY = "mg_playground_history";
+import { useAuthStore } from "@/store";
+import { userStorage } from "@/lib/userStorage";
+
 const MAX_HISTORY_ITEMS = 30;
 
 export function usePlayground(apiKey: string) {
+  const user = useAuthStore((s) => s.user);
+  const userId = user?.id;
+
   // Input configuration state
   const [prompt, setPrompt] = useState<string>(() => {
     try {
@@ -44,23 +49,18 @@ export function usePlayground(apiKey: string) {
   // Cancellation controller ref
   const abortControllerRef = useRef<AbortController | null>(null);
 
-  // History state persisted in localStorage
+  // History state strictly isolated per logged-in user
   const [history, setHistory] = useState<PlaygroundHistoryItem[]>(() => {
-    try {
-      const stored = localStorage.getItem(HISTORY_STORAGE_KEY);
-      return stored ? JSON.parse(stored) : [];
-    } catch {
-      return [];
-    }
+    return userStorage.getPlaygroundHistory<PlaygroundHistoryItem>(userId);
   });
 
+
+  // Persist history strictly under user ID
   useEffect(() => {
-    try {
-      localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history));
-    } catch {
-      // ignore storage quota issues
+    if (userId) {
+      userStorage.setPlaygroundHistory(userId, history);
     }
-  }, [history]);
+  }, [history, userId]);
 
   // Change provider and immediately set appropriate default model without cascading render effects
   const handleSetProvider = useCallback((nextProvider: ProviderOption) => {
@@ -285,11 +285,7 @@ export function usePlayground(apiKey: string) {
 
   const clearHistory = () => {
     setHistory([]);
-    try {
-      localStorage.removeItem(HISTORY_STORAGE_KEY);
-    } catch {
-      // ignore
-    }
+    userStorage.clearPlaygroundHistory(userId);
     toast.info("Playground run history cleared");
   };
 
