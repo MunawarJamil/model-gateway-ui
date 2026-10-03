@@ -1,6 +1,6 @@
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useNavigate, Link } from "react-router-dom";
+import { useNavigate, Link, useLocation } from "react-router-dom";
 import { toast } from "sonner";
 import {
   Card,
@@ -22,7 +22,18 @@ import { getApiErrorMessage } from "@/lib";
 // whole form — better perf/scalability than a controlled / useActionState setup.
 export function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const setAuth = useAuthStore((state) => state.setAuth);
+  const from =
+    typeof location.state === "object" &&
+    location.state !== null &&
+    "from" in location.state &&
+    typeof location.state.from === "object" &&
+    location.state.from !== null &&
+    "pathname" in location.state.from &&
+    typeof location.state.from.pathname === "string"
+      ? location.state.from.pathname
+      : "/dashboard";
 
   const {
     register,
@@ -39,7 +50,7 @@ export function LoginPage() {
       const data = await authApi.login(values.email, values.password);
       setAuth(data.user, data.accessToken);
       toast.success("Signed in successfully");
-      navigate("/dashboard");
+      navigate(from, { replace: true });
     } catch (err) {
       const message = getApiErrorMessage(err, "Invalid email or password");
       // Surface the real server message via toast + an inline root error.
