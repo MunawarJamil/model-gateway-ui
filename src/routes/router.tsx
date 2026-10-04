@@ -8,6 +8,10 @@ import { AppLayout } from '@/components'
 
 // ─── Lazy loaded pages ────────────────────────────────────────────────────────
 // Code splitting — each page is only loaded when the user navigates to it.
+const HomePage = lazy(() =>
+  import('@/features/home/HomePage').then((m) => ({ default: m.HomePage }))
+)
+
 const LoginPage = lazy(() =>
   import('@/features/auth/LoginPage').then((m) => ({ default: m.LoginPage }))
 )
@@ -55,6 +59,14 @@ export const router = createBrowserRouter([
     element: <RouterNavigationBinder />,
     children: [
       // ─── Public routes ──────────────────────────────────────────────────
+      {
+        path: '/',
+        element: (
+          <Suspense fallback={<PageLoader />}>
+            <HomePage />
+          </Suspense>
+        ),
+      },
       {
         path: '/login',
         element: (
